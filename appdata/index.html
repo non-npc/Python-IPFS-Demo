@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPFS in Desktop BBS</title>
+    <style>
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            background-color: #111;
+            color: #0f0;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1, h2 {
+            color: #0f0;
+            text-align: center;
+        }
+        button {
+            background-color: #222;
+            color: #0f0;
+            border: 1px solid #0f0;
+            padding: 8px 16px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #333;
+        }
+        input {
+            background-color: #222;
+            color: #0f0;
+            border: 1px solid #0f0;
+            padding: 8px;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        pre {
+            background-color: #222;
+            padding: 10px;
+            border: 1px solid #0f0;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+        .status {
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #0f0;
+            background-color: #222;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .section {
+            border: 1px solid #0f0;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .content-display {
+            background-color: #222;
+            padding: 10px;
+            border: 1px solid #0f0;
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .content-display img {
+            max-width: 100%;
+            max-height: 400px;
+            object-fit: contain;
+            border: 1px solid #0f0;
+        }
+        .content-display pre {
+            width: 100%;
+            margin: 0;
+        }
+        .sample-item {
+            cursor: pointer;
+            padding: 5px;
+            margin: 2px 0;
+        }
+        .sample-item:hover {
+            background-color: #222;
+        }
+        .image-section {
+            margin-top: 20px;
+        }
+        .image-samples {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .image-sample {
+            border: 1px solid #0f0;
+            padding: 5px;
+            cursor: pointer;
+            background-color: #222;
+        }
+        .image-sample:hover {
+            background-color: #333;
+        }
+    </style>
+</head>
+<body>
+    <h1>IPFS Explorer</h1>
+    <p>This is a simple IPFS content explorer demo.</p>
+    
+    <div class="container">
+        <div class="section">
+            <h2>Fetch Content from IPFS</h2>
+            <div>
+                <label for="cid-input">Enter IPFS CID:</label>
+                <input type="text" id="cid-input" placeholder="QmPChd2hVbrJ6bfo3WBcTW4iZnpHm8TEzWkLHmLpXhF68A" value="QmPChd2hVbrJ6bfo3WBcTW4iZnpHm8TEzWkLHmLpXhF68A">
+            </div>
+            <div>
+                <button onclick="fetchFromGateway()">Fetch from Gateway</button>
+                <button onclick="fetchFromMultipleGateways()">Try Multiple Gateways</button>
+            </div>
+            <div class="status" id="status">Ready</div>
+        </div>
+        
+        <div class="section">
+            <h2>Content</h2>
+            <div class="content-display" id="content-display">
+                <pre id="output">Content will appear here...</pre>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>Sample CIDs to Try</h2>
+            <ul>
+                <li class="sample-item" onclick="loadSample('QmPChd2hVbrJ6bfo3WBcTW4iZnpHm8TEzWkLHmLpXhF68A')"><code>QmPChd2hVbrJ6bfo3WBcTW4iZnpHm8TEzWkLHmLpXhF68A</code> - Hello IPFS text file</li>
+                <li class="sample-item" onclick="loadSample('QmY7Yh4UquoXHLPFo2XbhXkhBvFoPwmQUSa92pxnxjQuPU')"><code>QmY7Yh4UquoXHLPFo2XbhXkhBvFoPwmQUSa92pxnxjQuPU</code> - IPFS Logo</li>
+                <li class="sample-item" onclick="loadSample('QmZ4tDuvesekSs4qM5ZBKpXiZGun7S2CYtEZRB3DYXkjGx')"><code>QmZ4tDuvesekSs4qM5ZBKpXiZGun7S2CYtEZRB3DYXkjGx</code> - IPFS documentation</li>
+            </ul>
+            
+            <div class="image-section">
+                <h3>Sample Images</h3>
+                <div class="image-samples">
+                    <div class="image-sample" onclick="loadSample('QmY7Yh4UquoXHLPFo2XbhXkhBvFoPwmQUSa92pxnxjQuPU')">IPFS Logo</div>
+                    <div class="image-sample" onclick="loadSample('QmXoypizjW3WknFiJnKLwHCnL72vedxjQkDDP1mXWo6uco/wiki/Ipfs.html')">IPFS Wiki Page</div>
+                    <div class="image-sample" onclick="loadSample('bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi')">Earth Image</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Elements
+        const statusEl = document.getElementById('status');
+        const outputEl = document.getElementById('output');
+        const contentDisplayEl = document.getElementById('content-display');
+        const cidInput = document.getElementById('cid-input');
+        
+        // List of public IPFS gateways to try
+        const ipfsGateways = [
+            'https://ipfs.io/ipfs/',
+            'https://gateway.ipfs.io/ipfs/',
+            'https://cloudflare-ipfs.com/ipfs/',
+            'https://dweb.link/ipfs/',
+            'https://ipfs.infura.io/ipfs/'
+        ];
+        
+        // Load a sample CID
+        function loadSample(cid) {
+            cidInput.value = cid;
+            fetchFromGateway();
+        }
+        
+        // Clear the content display
+        function clearContentDisplay() {
+            while (contentDisplayEl.firstChild) {
+                contentDisplayEl.removeChild(contentDisplayEl.firstChild);
+            }
+        }
+        
+        // Display content based on type
+        function displayContent(content, contentType) {
+            clearContentDisplay();
+            
+            if (contentType && contentType.includes('image')) {
+                // Display image
+                const img = document.createElement('img');
+                img.src = content; // content is a URL for images
+                img.alt = 'IPFS Image';
+                contentDisplayEl.appendChild(img);
+            } else {
+                // Display text content
+                const pre = document.createElement('pre');
+                pre.id = 'output';
+                pre.textContent = content;
+                contentDisplayEl.appendChild(pre);
+            }
+        }
+        
+        // Fetch content from a specific IPFS gateway
+        async function fetchFromGateway(gatewayUrl = ipfsGateways[0]) {
+            try {
+                const cid = cidInput.value.trim();
+                if (!cid) {
+                    statusEl.textContent = 'Please enter a valid CID';
+                    return;
+                }
+                
+                statusEl.textContent = `Fetching from gateway: ${gatewayUrl}`;
+                displayContent('Loading...', 'text/plain');
+                
+                const url = `${gatewayUrl}${cid}`;
+                
+                // Special handling for known image CIDs
+                if (cid === 'QmY7Yh4UquoXHLPFo2XbhXkhBvFoPwmQUSa92pxnxjQuPU' || 
+                    cid.toLowerCase().endsWith('.jpg') || 
+                    cid.toLowerCase().endsWith('.jpeg') || 
+                    cid.toLowerCase().endsWith('.png') || 
+                    cid.toLowerCase().endsWith('.gif') || 
+                    cid.toLowerCase().endsWith('.webp')) {
+                    
+                    // For images, just set the src directly
+                    displayContent(url, 'image/jpeg');
+                    statusEl.textContent = `Displaying image from ${gatewayUrl}`;
+                    return;
+                }
+                
+                // For non-images, use fetch
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error(`Gateway returned ${response.status}: ${response.statusText}`);
+                }
+                
+                // Try to determine content type
+                const contentType = response.headers.get('content-type');
+                
+                if (contentType && contentType.includes('image')) {
+                    // Handle image content - display the image directly
+                    displayContent(url, contentType);
+                    statusEl.textContent = `Successfully fetched image from ${gatewayUrl}`;
+                } else if (contentType && (contentType.includes('application/json') || contentType.includes('text') || contentType.includes('html'))) {
+                    // Handle text or JSON content
+                    const text = await response.text();
+                    displayContent(text, contentType);
+                    statusEl.textContent = `Successfully fetched content from ${gatewayUrl}`;
+                } else {
+                    // Handle binary content
+                    displayContent('[Binary content - cannot display in text area]', 'text/plain');
+                    statusEl.textContent = `Successfully fetched binary content from ${gatewayUrl}`;
+                }
+            } catch (error) {
+                statusEl.textContent = `Error: ${error.message}`;
+                displayContent(`Error: ${error.message}`, 'text/plain');
+                console.error('IPFS fetch error:', error);
+                
+                // If the first gateway fails, try the next one
+                if (gatewayUrl === ipfsGateways[0]) {
+                    fetchFromMultipleGateways();
+                }
+            }
+        }
+        
+        // Try multiple gateways until one works
+        async function fetchFromMultipleGateways() {
+            const cid = cidInput.value.trim();
+            if (!cid) {
+                statusEl.textContent = 'Please enter a valid CID';
+                return;
+            }
+            
+            statusEl.textContent = 'Trying multiple gateways...';
+            displayContent('Loading...', 'text/plain');
+            
+            // Special handling for known image CIDs
+            if (cid === 'QmY7Yh4UquoXHLPFo2XbhXkhBvFoPwmQUSa92pxnxjQuPU' || 
+                cid.toLowerCase().endsWith('.jpg') || 
+                cid.toLowerCase().endsWith('.jpeg') || 
+                cid.toLowerCase().endsWith('.png') || 
+                cid.toLowerCase().endsWith('.gif') || 
+                cid.toLowerCase().endsWith('.webp')) {
+                
+                // For images, try each gateway directly
+                for (const gateway of ipfsGateways) {
+                    const url = `${gateway}${cid}`;
+                    statusEl.textContent = `Trying to display image from: ${gateway}`;
+                    displayContent(url, 'image/jpeg');
+                    return;
+                }
+            }
+            
+            // For non-images, try each gateway with fetch
+            for (const gateway of ipfsGateways) {
+                try {
+                    statusEl.textContent = `Trying gateway: ${gateway}`;
+                    const url = `${gateway}${cid}`;
+                    
+                    const response = await fetch(url);
+                    
+                    if (response.ok) {
+                        // Try to determine content type
+                        const contentType = response.headers.get('content-type');
+                        
+                        if (contentType && contentType.includes('image')) {
+                            // Handle image content - display the image directly
+                            displayContent(url, contentType);
+                            statusEl.textContent = `Successfully fetched image from ${gateway}`;
+                            return;
+                        } else if (contentType && (contentType.includes('application/json') || contentType.includes('text') || contentType.includes('html'))) {
+                            // Handle text or JSON content
+                            const text = await response.text();
+                            displayContent(text, contentType);
+                            statusEl.textContent = `Successfully fetched content from ${gateway}`;
+                            return;
+                        } else {
+                            // Handle binary content
+                            displayContent('[Binary content - cannot display in text area]', 'text/plain');
+                            statusEl.textContent = `Successfully fetched binary content from ${gateway}`;
+                            return;
+                        }
+                    }
+                } catch (error) {
+                    console.error(`Error with gateway ${gateway}:`, error);
+                    // Continue to the next gateway
+                }
+            }
+            
+            // If we get here, all gateways failed
+            statusEl.textContent = 'Failed to fetch from all gateways';
+            displayContent('Unable to retrieve content from any IPFS gateway. Please check the CID and try again.', 'text/plain');
+        }
+        
+        // Initialize with a default CID
+        document.addEventListener('DOMContentLoaded', () => {
+            statusEl.textContent = 'Ready to fetch IPFS content';
+        });
+    </script>
+</body>
+</html>
